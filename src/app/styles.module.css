@@ -1,0 +1,45 @@
+.container {
+  padding: 2rem;
+  max-width: 700px;
+  margin: auto;
+  font-family: Arial, sans-serif;
+}
+
+.card {
+  background: rgb(0, 200, 255);
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.resultsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.resultItem {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 500;
+  color: white;
+}
+
+.win {
+  background-color: #2ecc71; /* green */
+}
+
+.loss {
+  background-color: #e74c3c; /* red */
+}
+
+.draw {
+  background-color: #7f8c8d; /* grey */
+}
+
+.date {
+  opacity: 0.8;
+}

@@ -1,66 +1,112 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+// app/page.jsx
+import styles from "./styles.module.css";
 
-export default function Home() {
+type Match = {
+  id: number;
+  homeTeam: { id: number; name: string };
+  awayTeam: { id: number; name: string };
+  score: {
+    fullTime: { home: number; away: number };
+  };
+  utcDate: string;
+};
+
+
+export default async function Home() {
+
+
+  const apiKey = process.env.FOOTBALL_DATA_API_KEY;
+
+  const upcomingUrl =
+    "https://api.football-data.org/v4/teams/61/matches?status=SCHEDULED&limit=1";
+
+  const previousUrl =
+    "https://api.football-data.org/v4/teams/61/matches?status=FINISHED&limit=5";
+
+  const headers: HeadersInit = {
+    "X-Auth-Token": apiKey || "",
+  };
+
+
+  const [upcomingRes, previousRes] = await Promise.all([
+    fetch(upcomingUrl, { headers, next: { revalidate: 60 } }),
+    fetch(previousUrl, { headers, next: { revalidate: 60 } }),
+  ]);
+
+  if (!upcomingRes.ok || !previousRes.ok) {
+    return <div>Error loading data.</div>;
+  }
+
+  const upcomingData = await upcomingRes.json();
+  const previousData = await previousRes.json();
+
+  const nextMatch = upcomingData.matches?.[0] || null;
+  const previousMatches = previousData.matches || [];
+
+
+
+
+  function getResultClass(match: Match) {
+    const homeScore = match.score.fullTime.home;
+    const awayScore = match.score.fullTime.away;
+    const isChelseaHome = match.homeTeam.id === 61;
+
+    const diff = isChelseaHome
+      ? homeScore - awayScore
+      : awayScore - homeScore;
+
+    if (diff > 0) return styles.win;
+    if (diff < 0) return styles.loss;
+    return styles.draw;
+  }
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
+    <main className={styles.container}>
+      <h1>Chelsea FC Matches</h1>
+
+      {/* Next Match */}
+      <section className={styles.card}>
+        <h2>Next Match</h2>
+        {nextMatch ? (
+          <>
+            <p>
+              <strong>{nextMatch.homeTeam.name}</strong> vs{" "}
+              <strong>{nextMatch.awayTeam.name}</strong>
+            </p>
+            <p>Competition: {nextMatch.competition.name}</p>
+            <p>
+              Date:{" "}
+              {new Date(nextMatch.utcDate).toLocaleString("en-GB", {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </p>
+          </>
+        ) : (
+          <p>No upcoming matches found.</p>
+        )}
+      </section>
+
+      {/* Last 5 Results */}
+      <section className={styles.card}>
+        <h2>Last 5 Results</h2>
+        <div className={styles.resultsList}>
+          {previousMatches.map((match: Match) => (
+            <div
+              key={match.id}
+              className={`${styles.resultItem} ${getResultClass(match)}`}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <span>
+                {match.homeTeam.name} {match.score.fullTime.home} -{" "}
+                {match.score.fullTime.away} {match.awayTeam.name}
+              </span>
+              <span className={styles.date}>
+                {new Date(match.utcDate).toLocaleDateString("en-GB")}
+              </span>
+            </div>
+          ))}
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }
