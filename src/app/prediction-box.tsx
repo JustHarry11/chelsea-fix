@@ -102,7 +102,7 @@ useEffect(() => {
             {new Date(fixture.utcDate).toLocaleString("en-GB")}
           </p>
 
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
             <select
               value={choice}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>

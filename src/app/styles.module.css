@@ -12,12 +12,14 @@
   margin-top: 20px;
   border-radius: 8px;
   border: 1px solid #ddd;
+  text-align: center;
 }
 
 .resultsList {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  
 }
 
 .resultItem {
@@ -26,6 +28,7 @@
   background: #eee;
   display: flex;
   justify-content: space-between;
+  
 }
 
 .win {
