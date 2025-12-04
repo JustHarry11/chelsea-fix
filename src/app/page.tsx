@@ -1,20 +1,18 @@
-// app/page.jsx
 import styles from "./styles.module.css";
+import PredictionBox from "./prediction-box";
 
 type Match = {
   id: number;
   homeTeam: { id: number; name: string };
   awayTeam: { id: number; name: string };
+  competition: { name: string };
   score: {
     fullTime: { home: number; away: number };
   };
   utcDate: string;
 };
 
-
 export default async function Home() {
-
-
   const apiKey = process.env.FOOTBALL_DATA_API_KEY;
 
   const upcomingUrl =
@@ -26,7 +24,6 @@ export default async function Home() {
   const headers: HeadersInit = {
     "X-Auth-Token": apiKey || "",
   };
-
 
   const [upcomingRes, previousRes] = await Promise.all([
     fetch(upcomingUrl, { headers, next: { revalidate: 60 } }),
@@ -40,11 +37,8 @@ export default async function Home() {
   const upcomingData = await upcomingRes.json();
   const previousData = await previousRes.json();
 
-  const nextMatch = upcomingData.matches?.[0] || null;
-  const previousMatches = previousData.matches || [];
-
-
-
+  const nextMatch: Match | null = upcomingData.matches?.[0] || null;
+  const previousMatches: Match[] = previousData.matches || [];
 
   function getResultClass(match: Match) {
     const homeScore = match.score.fullTime.home;
@@ -64,7 +58,7 @@ export default async function Home() {
     <main className={styles.container}>
       <h1>Chelsea FC Matches</h1>
 
-      {/* Next Match */}
+      {/* NEXT MATCH */}
       <section className={styles.card}>
         <h2>Next Match</h2>
         {nextMatch ? (
@@ -81,17 +75,23 @@ export default async function Home() {
                 timeStyle: "short",
               })}
             </p>
+
+            {/* Prediction UI */}
+            <PredictionBox
+              fixture={nextMatch}
+              previousMatches={previousMatches}
+            />
           </>
         ) : (
           <p>No upcoming matches found.</p>
         )}
       </section>
 
-      {/* Last 5 Results */}
+      {/* LAST 5 RESULTS */}
       <section className={styles.card}>
         <h2>Last 5 Results</h2>
         <div className={styles.resultsList}>
-          {previousMatches.map((match: Match) => (
+          {previousMatches.map((match) => (
             <div
               key={match.id}
               className={`${styles.resultItem} ${getResultClass(match)}`}
