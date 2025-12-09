@@ -2,14 +2,18 @@ import styles from "./styles.module.css";
 import PredictionBox from "./prediction-box";
 import LastResults from "./last-results";
 
+type Team = {
+  id: number;
+  name: string;
+  crest: string;
+};
+
 type Match = {
   id: number;
-  homeTeam: { id: number; name: string; crest: string };
-  awayTeam: { id: number; name: string; crest: string };
+  homeTeam: Team;
+  awayTeam: Team;
   competition: { name: string };
-  score: {
-    fullTime: { home: number; away: number };
-  };
+  score: { fullTime: { home: number; away: number } };
   utcDate: string;
 };
 
@@ -40,30 +44,33 @@ export default async function Home() {
 
   const nextMatch: Match | null = upcomingData.matches?.[0] || null;
   const previousMatches: Match[] = previousData.matches || [];
+  const teamName = nextMatch
+  ? nextMatch.homeTeam.id === 61
+    ? nextMatch.homeTeam.name
+    : nextMatch.awayTeam.name
+  : "Team";
 
   return (
     <main className={styles.container}>
-      <h1>Chelsea FC Matches</h1>
+      <h1 style={{ textAlign: "center" }}>{teamName} Matches</h1>
+
 
       {/* NEXT MATCH */}
-      <section className={styles.card}>
-        <h2>Next Match</h2>
+      <section>
+        <h2 style={{ textAlign: "center" }}>Next Match</h2>
         {nextMatch ? (
-          <>
-            {/* Prediction UI */}
-            <PredictionBox
-              fixture={nextMatch}
-              previousMatches={previousMatches}
-            />
-          </>
+          <PredictionBox
+            fixture={nextMatch}
+            previousMatches={previousMatches}
+          />
         ) : (
           <p>No upcoming matches found.</p>
         )}
       </section>
 
       {/* LAST 5 RESULTS */}
-      <section className={styles.card}>
-        <h2>Last 5 Results</h2>
+      <section style={{ marginTop: 32 }}>
+        <h2 style={{ textAlign: "center" }}>Last 5 Results</h2>
         <LastResults matches={previousMatches} />
       </section>
     </main>

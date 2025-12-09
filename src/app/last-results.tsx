@@ -1,9 +1,11 @@
 "use client";
 
-import Image from "next/image";
+import { useEffect, useState } from "react";
 import { StoredPrediction, predictionService } from "../lib/predictionService";
+import Image from "next/image";
 import styles from "./last-results.module.css";
 
+// --- Types ---
 type Team = {
   id: number;
   name: string;
@@ -18,8 +20,17 @@ type Match = {
   utcDate: string;
 };
 
+// --- Component ---
 export default function LastResults({ matches }: { matches: Match[] }) {
-  // Explicitly type results to use StoredPrediction
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    // Defer state change to avoid cascading render warning
+    Promise.resolve().then(() => setHydrated(true));
+  }, []);
+
+  if (!hydrated) return null; // skip rendering on server
+
   const results: {
     match: Match;
     prediction: StoredPrediction["prediction"] | null;
