@@ -1,84 +1,98 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
 import { StoredPrediction, predictionService } from "../lib/predictionService";
-import styles from "./styles.module.css";
+import styles from "./last-results.module.css";
+
+type Team = {
+  id: number;
+  name: string;
+  crest: string;
+};
 
 type Match = {
   id: number;
-  homeTeam: { id: number; name: string };
-  awayTeam: { id: number; name: string };
+  homeTeam: Team;
+  awayTeam: Team;
   score: { fullTime: { home: number; away: number } };
   utcDate: string;
 };
 
 export default function LastResults({ matches }: { matches: Match[] }) {
-  const [predictions, setPredictions] = useState<StoredPrediction[]>([]);
+  // Explicitly type results to use StoredPrediction
+  const results: {
+    match: Match;
+    prediction: StoredPrediction["prediction"] | null;
+    success: boolean | null;
+    actualResult: "WIN" | "LOSE" | "DRAW";
+  }[] = matches.map((match) => {
+    const saved = predictionService.loadPrediction(match.id);
 
-useEffect(() => {
-  Promise.resolve().then(() => {
-    const loaded = matches
-      .map((m) => predictionService.loadPrediction(m.id))
-      .filter((x): x is StoredPrediction => !!x);
+    const actual =
+      match.score.fullTime.home > match.score.fullTime.away
+        ? "WIN"
+        : match.score.fullTime.home < match.score.fullTime.away
+        ? "LOSE"
+        : "DRAW";
 
-    setPredictions(loaded);
+    return {
+      match,
+      prediction: saved?.prediction ?? null,
+      success: saved?.success ?? null,
+      actualResult: actual,
+    };
   });
-}, [matches]);
-
-
 
   return (
-    <div className={styles.resultsList}>
-      {matches.map((match) => {
-        const pred = predictions.find((p) => p.fixtureId === match.id);
+    <div>
+      {results.map(({ match, prediction, success }) => (
+        <div key={match.id} className={styles.card}>
+          <div className={styles.matchHeader}>
+            <div className={styles.team}>
+              <Image
+                src={match.homeTeam.crest}
+                alt={match.homeTeam.name}
+                width={36}
+                height={36}
+              />
+              <strong>{match.homeTeam.name}</strong>
+            </div>
 
-        const actual =
-          match.score.fullTime.home > match.score.fullTime.away
-            ? "WIN"
-            : match.score.fullTime.home < match.score.fullTime.away
-            ? "LOSE"
-            : "DRAW";
+            <span className={styles.vs}>vs</span>
 
-        const isCorrect = pred ? pred.prediction === actual : null;
-
-        return (
-          <div
-            key={match.id}
-            className={`${styles.resultItem} ${
-              actual === "WIN"
-                ? styles.win
-                : actual === "LOSE"
-                ? styles.loss
-                : styles.draw
-            }`}
-          >
-            <span>
-              {match.homeTeam.name} {match.score.fullTime.home} -{" "}
-              {match.score.fullTime.away} {match.awayTeam.name}
-            </span>
-
-            <span className={styles.date}>
-              {new Date(match.utcDate).toLocaleDateString("en-GB")}
-            </span>
-
-            {/* PREDICTION INFO */}
-            <div style={{ marginTop: 4 }}>
-              {pred ? (
-                <>
-                  <strong>You predicted: {pred.prediction}</strong>{" "}
-                  {isCorrect ? (
-                    <span style={{ color: "limegreen" }}>✔ Correct</span>
-                  ) : (
-                    <span style={{ color: "crimson" }}>✘ Wrong</span>
-                  )}
-                </>
-              ) : (
-                <em style={{ color: "#777" }}>No prediction</em>
-              )}
+            <div className={styles.team}>
+              <strong>{match.awayTeam.name}</strong>
+              <Image
+                src={match.awayTeam.crest}
+                alt={match.awayTeam.name}
+                width={36}
+                height={36}
+              />
             </div>
           </div>
-        );
-      })}
+
+          <div className={styles.score}>
+            {match.score.fullTime.home} - {match.score.fullTime.away}
+          </div>
+
+          <div className={styles.date}>
+            {new Date(match.utcDate).toLocaleDateString("en-GB")}
+          </div>
+
+          {prediction ? (
+            <div className={styles.prediction}>
+              Your prediction:{" "}
+              <span className={success ? styles.correct : styles.wrong}>
+                {prediction} {success ? "✔" : "✘"}
+              </span>
+            </div>
+          ) : (
+            <div className={styles.prediction} style={{ color: "#777" }}>
+              No prediction
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

@@ -128,8 +128,8 @@ a.secondary {
   }
 
   .page {
-    --background: #000;
-    --foreground: #000;
+    --background: #ffffff;
+    --foreground: #ffffff;
 
     --text-primary: #ededed;
     --text-secondary: #999;

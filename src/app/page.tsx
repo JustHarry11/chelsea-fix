@@ -4,8 +4,8 @@ import LastResults from "./last-results";
 
 type Match = {
   id: number;
-  homeTeam: { id: number; name: string };
-  awayTeam: { id: number; name: string };
+  homeTeam: { id: number; name: string; crest: string };
+  awayTeam: { id: number; name: string; crest: string };
   competition: { name: string };
   score: {
     fullTime: { home: number; away: number };
@@ -50,19 +50,6 @@ export default async function Home() {
         <h2>Next Match</h2>
         {nextMatch ? (
           <>
-            <p>
-              <strong>{nextMatch.homeTeam.name}</strong> vs{" "}
-              <strong>{nextMatch.awayTeam.name}</strong>
-            </p>
-            <p>Competition: {nextMatch.competition.name}</p>
-            <p>
-              Date:{" "}
-              {new Date(nextMatch.utcDate).toLocaleString("en-GB", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
-            </p>
-
             {/* Prediction UI */}
             <PredictionBox
               fixture={nextMatch}

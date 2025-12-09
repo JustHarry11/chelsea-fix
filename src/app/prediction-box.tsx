@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { predictionService, StoredPrediction } from "../lib/predictionService";
+import styles from "./match-card.module.css";
+
+type Team = {
+  id: number;
+  name: string;
+  crest: string;
+};
 
 type Match = {
   id: number;
-  homeTeam: { id: number; name: string };
-  awayTeam: { id: number; name: string };
+  homeTeam: Team;
+  awayTeam: Team;
   score: { fullTime: { home: number; away: number } };
   utcDate: string;
 };
@@ -25,7 +33,10 @@ export default function PredictionBox({ fixture, previousMatches }: Props) {
     success: boolean;
   } | null>(null);
 
-  function getMatchResultFromFinished(match: Match): "WIN" | "LOSE" | "DRAW" {
+  const fixtureId = fixture?.id;
+
+  // --- Move getMatchResult here, BEFORE useEffect ---
+  function getMatchResult(match: Match): "WIN" | "LOSE" | "DRAW" {
     const home = match.score.fullTime.home;
     const away = match.score.fullTime.away;
     const isChelseaHome = match.homeTeam.id === 61;
@@ -38,40 +49,13 @@ export default function PredictionBox({ fixture, previousMatches }: Props) {
     return "DRAW";
   }
 
-const fixtureId = fixture?.id;
-
-  // Load saved prediction for this fixture
-useEffect(() => {
-  if (!fixtureId) return;
-
-  const existing = predictionService.loadPrediction(fixtureId);
-  if (!existing) return;
-
-  Promise.resolve().then(() => {
-    setChoice(existing.prediction);
-    setLocked(true);
-
-    if (existing.result !== null) {
-      setStatus("resolved");
-      setResultInfo({
-        result: existing.result,
-        success: existing.success ?? false,
-      });
-    } else {
-      setStatus("locked");
-    }
-  });
-}, [fixtureId]);
-
-
-  // Check finished matches to resolve predictions
   useEffect(() => {
+    // Resolve previous predictions
     previousMatches.forEach((m) => {
       const saved = predictionService.loadPrediction(m.id);
       if (saved && saved.result === null) {
-        const actual = getMatchResultFromFinished(m);
+        const actual = getMatchResult(m); // now safe to call
         const success = saved.prediction === actual;
-
         predictionService.saveResult(m.id, actual, success);
 
         if (fixture && fixture.id === m.id) {
@@ -80,7 +64,29 @@ useEffect(() => {
         }
       }
     });
-  }, [previousMatches, fixture]);
+
+    // Load existing prediction for current fixture
+    if (fixtureId) {
+      const existing = predictionService.loadPrediction(fixtureId);
+      if (!existing) return;
+
+      Promise.resolve().then(() => {
+        setChoice(existing.prediction);
+        setLocked(true);
+
+        if (existing.result !== null) {
+          setStatus("resolved");
+          setResultInfo({
+            result: existing.result,
+            success: existing.success ?? false,
+          });
+        } else {
+          setStatus("locked");
+        }
+      });
+    }
+  }, [fixture, fixtureId, previousMatches]);
+
 
   function lockPrediction() {
     if (!fixture || !choice) return;
@@ -89,60 +95,81 @@ useEffect(() => {
     setStatus("locked");
   }
 
-  return (
-    <div style={{ marginTop: 20 }}>
-      <h3>Predict This Match</h3>
+  if (!fixture) return null;
 
-      {fixture && (
-        <>
+  return (
+    <div className={styles.card}>
+      <div className={styles.matchHeader}>
+        <div className={styles.team}>
+          <Image
+            src={fixture.homeTeam.crest}
+            alt={fixture.homeTeam.name}
+            width={40}
+            height={40}
+          />
+          <strong>{fixture.homeTeam.name}</strong>
+        </div>
+
+        <span className={styles.vs}>vs</span>
+
+        <div className={styles.team}>
+          <strong>{fixture.awayTeam.name}</strong>
+          <Image
+            src={fixture.awayTeam.crest}
+            alt={fixture.awayTeam.name}
+            width={40}
+            height={40}
+          />
+        </div>
+      </div>
+
+      <div className={styles.date}>
+        {new Date(fixture.utcDate).toLocaleString("en-GB")}
+      </div>
+
+      <div className={styles.selectPrediction}>
+        <select
+          value={choice}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+            setChoice(e.target.value as StoredPrediction["prediction"])
+          }
+          disabled={locked}
+        >
+          <option value="">Select…</option>
+          <option value="WIN">Win</option>
+          <option value="LOSE">Lose</option>
+          <option value="DRAW">Draw</option>
+        </select>
+
+        <button
+          className={styles.predictionButton}
+          onClick={lockPrediction}
+          disabled={!choice || locked}
+        >
+          Lock
+        </button>
+      </div>
+
+      {status === "locked" && (
+        <div className={styles.locked}>
+          🔒 Prediction locked: <strong>{choice}</strong>
+        </div>
+      )}
+
+      {status === "resolved" && resultInfo && (
+        <div className={styles.locked}>
           <p>
-            <strong>{fixture.homeTeam.name}</strong> vs{" "}
-            <strong>{fixture.awayTeam.name}</strong>
+            Your prediction: <strong>{choice}</strong>
             <br />
-            {new Date(fixture.utcDate).toLocaleString("en-GB")}
+            Actual result: <strong>{resultInfo.result}</strong>
           </p>
 
-          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-            <select
-              value={choice}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setChoice(e.target.value as StoredPrediction["prediction"])
-            }
-              disabled={locked}
-            >
-              <option value="">Select…</option>
-              <option value="WIN">Win</option>
-              <option value="LOSE">Lose</option>
-              <option value="DRAW">Draw</option>
-            </select>
-
-            <button onClick={lockPrediction} disabled={!choice || locked}>
-              Lock
-            </button>
-          </div>
-
-          {status === "locked" && (
-            <p style={{ marginTop: 10 }}>
-              🔒 Prediction locked: <strong>{choice}</strong>
-            </p>
+          {resultInfo.success ? (
+            <span className={styles.resultCorrect}>Correct! ✅</span>
+          ) : (
+            <span className={styles.resultWrong}>Wrong ❌</span>
           )}
-
-          {status === "resolved" && resultInfo && (
-            <div style={{ marginTop: 10 }}>
-              <p>
-                Your prediction: <strong>{choice}</strong>
-                <br />
-                Actual result: <strong>{resultInfo.result}</strong>
-              </p>
-
-              {resultInfo.success ? (
-                <p style={{ color: "green" }}>Correct! ✅</p>
-              ) : (
-                <p style={{ color: "crimson" }}>Wrong ❌</p>
-              )}
-            </div>
-          )}
-        </>
+        </div>
       )}
     </div>
   );
