@@ -1,5 +1,6 @@
 import styles from "./styles.module.css";
 import PredictionBox from "./prediction-box";
+import LastResults from "./last-results";
 
 type Match = {
   id: number;
@@ -40,20 +41,6 @@ export default async function Home() {
   const nextMatch: Match | null = upcomingData.matches?.[0] || null;
   const previousMatches: Match[] = previousData.matches || [];
 
-  function getResultClass(match: Match) {
-    const homeScore = match.score.fullTime.home;
-    const awayScore = match.score.fullTime.away;
-    const isChelseaHome = match.homeTeam.id === 61;
-
-    const diff = isChelseaHome
-      ? homeScore - awayScore
-      : awayScore - homeScore;
-
-    if (diff > 0) return styles.win;
-    if (diff < 0) return styles.loss;
-    return styles.draw;
-  }
-
   return (
     <main className={styles.container}>
       <h1>Chelsea FC Matches</h1>
@@ -90,22 +77,7 @@ export default async function Home() {
       {/* LAST 5 RESULTS */}
       <section className={styles.card}>
         <h2>Last 5 Results</h2>
-        <div className={styles.resultsList}>
-          {previousMatches.map((match) => (
-            <div
-              key={match.id}
-              className={`${styles.resultItem} ${getResultClass(match)}`}
-            >
-              <span>
-                {match.homeTeam.name} {match.score.fullTime.home} -{" "}
-                {match.score.fullTime.away} {match.awayTeam.name}
-              </span>
-              <span className={styles.date}>
-                {new Date(match.utcDate).toLocaleDateString("en-GB")}
-              </span>
-            </div>
-          ))}
-        </div>
+        <LastResults matches={previousMatches} />
       </section>
     </main>
   );
